@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Simulator</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    background:#0f172a;
+    color:white;
+    padding:30px;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:10px;
+}
+
+.subtitle{
+    text-align:center;
+    color:#94a3b8;
+    margin-bottom:40px;
+}
+
+.pipeline{
+    display:flex;
+    gap:15px;
+    overflow-x:auto;
+    margin-bottom:40px;
+}
+
+.step{
+    min-width:180px;
+    background:#1e293b;
+    padding:20px;
+    border-radius:15px;
+    text-align:center;
+    border:2px solid #334155;
+}
+
+.arrow{
+    font-size:28px;
+    align-self:center;
+}
+
+.section{
+    background:#1e293b;
+    border-radius:15px;
+    padding:20px;
+    margin-bottom:25px;
+}
+
+textarea{
+    width:100%;
+    height:120px;
+    margin-top:10px;
+    background:#0f172a;
+    color:white;
+    border:1px solid #334155;
+    padding:10px;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    background:#0f172a;
+    color:white;
+    border:1px solid #334155;
+}
+
+button{
+    margin-top:15px;
+    padding:12px 20px;
+    background:#3b82f6;
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.card{
+    background:#0f172a;
+    padding:15px;
+    margin-top:10px;
+    border-left:4px solid #3b82f6;
+}
+
+.vector{
+    font-family:monospace;
+    color:#22c55e;
+}
+
+.highlight{
+    border-left:4px solid #22c55e;
+}
+
+.answer{
+    background:#052e16;
+    padding:15px;
+    border-radius:10px;
+    margin-top:10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>Retrieval Augmented Generation (RAG) Simulator</h1>
+<p class="subtitle">Understand every step of the RAG Pipeline</p>
+
+<div class="pipeline">
+
+<div class="step">1️⃣ Documents</div>
+<div class="arrow">➡</div>
+
+<div class="step">2️⃣ Chunking</div>
+<div class="arrow">➡</div>
+
+<div class="step">3️⃣ Embeddings</div>
+<div class="arrow">➡</div>
+
+<div class="step">4️⃣ Vector DB</div>
+<div class="arrow">➡</div>
+
+<div class="step">5️⃣ User Query</div>
+<div class="arrow">➡</div>
+
+<div class="step">6️⃣ Query Embedding</div>
+<div class="arrow">➡</div>
+
+<div class="step">7️⃣ Similarity Search</div>
+<div class="arrow">➡</div>
+
+<div class="step">8️⃣ Top N Retrieval</div>
+<div class="arrow">➡</div>
+
+<div class="step">9️⃣ Prompt</div>
+<div class="arrow">➡</div>
+
+<div class="step">🔟 LLM Response</div>
+
+</div>
+
+<!-- Documents -->
+
+<div class="section">
+
+<h2>Step 1 : Source Documents</h2>
+
+<textarea id="documents">
+Product A supports credit card payments.
+Product B supports UPI and Net Banking.
+Customers can track payment status online.
+Refunds are processed within 3 business days.
+</textarea>
+
+<button onclick="chunkData()">Create Chunks</button>
+
+</div>
+
+<!-- Chunking -->
+
+<div class="section">
+
+<h2>Step 2 : Chunking</h2>
+
+<div id="chunks"></div>
+
+</div>
+
+<!-- Embeddings -->
+
+<div class="section">
+
+<h2>Step 3 : Create Embeddings</h2>
+
+<div id="embeddings"></div>
+
+</div>
+
+<!-- Vector Database -->
+
+<div class="section">
+
+<h2>Step 4 : Store in Vector Database</h2>
+
+<div id="vectordb"></div>
+
+</div>
+
+<!-- Query -->
+
+<div class="section">
+
+<h2>Step 5 : Ask a Question</h2>
+
+<input id="question" placeholder="Example: How long do refunds take?">
+
+<button onclick="search()">Search Vector Database</button>
+
+</div>
+
+<!-- Query Embedding -->
+
+<div class="section">
+
+<h2>Step 6 : Query Embedding</h2>
+
+<div id="queryEmbedding"></div>
+
+</div>
+
+<!-- Retrieval -->
+
+<div class="section">
+
+<h2>Step 7 : Top Matching Chunks</h2>
+
+<div id="retrieved"></div>
+
+</div>
+
+<!-- Prompt -->
+
+<div class="section">
+
+<h2>Step 8 : Prompt sent to LLM</h2>
+
+<div id="prompt"></div>
+
+</div>
+
+<!-- Answer -->
+
+<div class="section">
+
+<h2>Step 9 : LLM Answer</h2>
+
+<div id="answer"></div>
+
+</div>
+
+<script>
+
+let chunks=[];
+
+function randomVector(){
+
+let arr=[];
+
+for(let i=0;i<6;i++)
+arr.push(Math.random().toFixed(2));
+
+return "["+arr.join(", ")+"]";
+
+}
+
+function chunkData(){
+
+let text=document.getElementById("documents").value;
+
+chunks=text.split("\n");
+
+let chunkHTML="";
+let embeddingHTML="";
+let vectorHTML="";
+
+chunks.forEach((c,index)=>{
+
+chunkHTML+=`
+<div class="card">
+<b>Chunk ${index+1}</b><br>
+${c}
+</div>`;
+
+let vector=randomVector();
+
+embeddingHTML+=`
+<div class="card">
+<b>Chunk ${index+1}</b>
+<div class="vector">${vector}</div>
+</div>`;
+
+vectorHTML+=`
+<div class="card">
+Stored Vector ${index+1}<br>
+<div class="vector">${vector}</div>
+</div>`;
+
+});
+
+document.getElementById("chunks").innerHTML=chunkHTML;
+
+document.getElementById("embeddings").innerHTML=embeddingHTML;
+
+document.getElementById("vectordb").innerHTML=vectorHTML;
+
+}
+
+function search(){
+
+let q=document.getElementById("question").value;
+
+document.getElementById("queryEmbedding").innerHTML=`
+<div class="card">
+Question : ${q}
+<div class="vector">${randomVector()}</div>
+</div>`;
+
+let retrieved=chunks.slice(0,2);
+
+let html="";
+
+retrieved.forEach(c=>{
+
+html+=`
+<div class="card highlight">
+${c}
+</div>`;
+
+});
+
+document.getElementById("retrieved").innerHTML=html;
+
+document.getElementById("prompt").innerHTML=`
+
+<div class="card">
+
+<b>Context</b>
+
+<hr><br>
+
+${retrieved.join("<br><br>")}
+
+<br><br>
+
+<b>User Question</b>
+
+<br>
+
+${q}
+
+</div>
+
+`;
+
+document.getElementById("answer").innerHTML=`
+
+<div class="answer">
+
+The LLM receives only the retrieved chunks and the user question.
+It then generates an answer using this context instead of the entire document.
+
+</div>
+
+`;
+
+}
+
+chunkData();
+
+</script>
+
+</body>
+</html>
